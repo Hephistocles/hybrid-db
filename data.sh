@@ -13,6 +13,7 @@ echo "id lat lng" > data/raw/points.dat;
 wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.co.gz |
 	gunzip |
 	egrep -v '^[cp]' | # strip comments
+	tr " " "," | # convert spaces to commas, and on next line remove first two chars
 	sed 's/^..//' >> data/raw/points.dat;
 
 # get arcs
@@ -20,6 +21,7 @@ echo "id1 id2 dist" > data/raw/edges.dat;
 wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.gr.gz |
 	gunzip |
 	egrep -v '^[cp]' | # strip comments
+	tr " " "," | # convert spaces to commas, and on next line remove first two chars
 	sed 's/^..//' >> data/raw/edges.dat;
 
 
