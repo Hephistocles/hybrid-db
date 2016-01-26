@@ -9,7 +9,7 @@ TMP=`mktemp`
 mkdir -p data/raw
 
 # get vertices
-echo "id lat lng" > data/raw/points.dat;
+echo "id,lat,lng" > data/raw/points.dat;
 wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.co.gz |
 	gunzip |
 	egrep -v '^[cp]' | # strip comments
@@ -17,7 +17,7 @@ wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.co
 	sed 's/^..//' >> data/raw/points.dat;
 
 # get arcs
-echo "id1 id2 dist" > data/raw/edges.dat;
+echo "id1,id2,dist" > data/raw/edges.dat;
 wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.gr.gz |
 	gunzip |
 	egrep -v '^[cp]' | # strip comments
