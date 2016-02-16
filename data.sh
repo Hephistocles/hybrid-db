@@ -28,4 +28,5 @@ wget -O - http://www.dis.uniroma1.it/challenge9/data/USA-road-d/USA-road-d.NY.gr
 # insert into Neo4J
 neo4j-shell -c < import.cql;
 
-# insert into PostgreSQL
+# insert into MySql
+mysql --local-infile=1 -u hybrid hybrid < import.sql
