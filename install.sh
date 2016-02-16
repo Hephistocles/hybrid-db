@@ -8,14 +8,17 @@ sudo apt-get install neo4j
 
 
 # Install PostgreSQL
-sudo apt-get install postgresql postgresql-contrib pgadmin3 postgresql-client
-sudo -u postgres createuser --superuser $USER
-sudo -u postgres createdb $USER
+# sudo apt-get install postgresql postgresql-contrib pgadmin3 postgresql-client
+# sudo -u postgres createuser --superuser $USER
+# sudo -u postgres createdb $USER
 
-echo "To set up the PostgreSQL server password, enter the following:"
-echo ""
-echo "sudo -u postgres psql"
-echo " postgres=# \password $USER"
-echo ""
+# echo "To set up the PostgreSQL server password, enter the following:"
+# echo ""
+# echo "sudo -u postgres psql"
+# echo " postgres=# \password $USER"
+# echo ""
 
-# create data manipulation groups so the special users have access to what we want
+## I'm using MySQL instead...
+
+# <MySQL Installation Instructions Go Here>
+
