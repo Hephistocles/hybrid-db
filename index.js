@@ -1,8 +1,8 @@
 var q = require("q");
 
-var sql = require("./sql.js");
-var cypher = require("./cypher.js");
-var hybrid = require("./hybrid.js");
+var sql = require("./src/sql.js");
+var cypher = require("./src/cypher.js");
+var hybrid = require("./src/hybrid.js");
 
 main();
 
@@ -33,5 +33,9 @@ function main() {
 				cypher.end(),
 				hybrid.end()
 			];
+		})
+		.catch(function(err) {
+			console.error(err);
+			throw err;
 		})
 }

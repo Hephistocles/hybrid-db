@@ -1,13 +1,21 @@
-// for now we'll just have a singleton connection instance
 var Q = require("q");
 var mysql = require('promise-mysql');
+var Graph = require("./classes.js").Graph;
 var config = require("../config.json");
 
+// for now we'll just have a singleton connection/graph instance
 var connection;
+var graph;
+
 
 module.exports = 
 	{
 		init: function(){
+
+			// initialise our in-memory store as an empty graph
+			graph = new Graph([], []);
+
+			// initialise a connection to the underlying DB
 			if (connection === null || connection === undefined) {
 				return mysql.createConnection({
 						host: config.auth.sql.host,
@@ -18,19 +26,10 @@ module.exports =
 					.then(function(conn) {
 						connection = conn;
 					});
-			} else return Q.reject("SQL Initialisation failed");
+			} else return Q.reject("Hybrid SQL Initialisation failed");
 		},
 		query: function(query, params){
-
-			return connection.query(query)
-				.then(function(result) {
-					// any default processing?
-					return result;
-				});
-		},
-		end: function() {
-			connection.end();
-			connection = null;
 			return Q(true);
-		}
+		},
+		end: function() {return Q(true);}
 	};

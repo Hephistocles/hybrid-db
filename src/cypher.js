@@ -1,5 +1,6 @@
 var Q = require("q");
 var rp = require("request-promise");
+var config = require("../config.json");
 
 module.exports = 
 	{
@@ -8,8 +9,8 @@ module.exports =
 			return rp.post({
 					uri: "http://localhost:7474/db/data/transaction/commit",
 					'auth': {
-						'user': 'neo4j',
-						'pass': 'LockDown1'
+						'user': config.auth.neo4j.user,
+						'pass': config.auth.neo4j.password
 					},
 					json: {
 						statements: [{

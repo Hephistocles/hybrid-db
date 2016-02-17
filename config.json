@@ -1,0 +1,14 @@
+{
+	"auth": {
+		"sql": {
+			"host": "localhost",
+			"user": "hybrid",
+			"database": "hybrid",
+			"password": "sample"
+		}, 
+		"neo4j": {
+			"user": "neo4j",
+			"password": "sample"
+		}
+	}
+}
