@@ -1,4 +1,5 @@
-var _ = require("lodash");
+var _     = require("lodash");
+var Q     = require("q");
 
 var utils = require("./utils.js");
 _.indexBy = utils.getIndexBy(_);
@@ -15,23 +16,23 @@ _.indexBy = utils.getIndexBy(_);
 
 function Graph(vertices, edges) {
 
-    return {
-        vertices: _.indexBy(vertices, 'id'),
-        edges: _.indexBy(edges, 'label')
-    };
+    this.vertices = _.indexBy(vertices, 'id');
+    this.edges = _.indexBy(edges, 'label');
 }
-Graph.prototype = {};
+Graph.prototype = {
+    addVertex: function(vertex) {this.vertices[vertex.id] = vertex},
+    addEdge: function(edge) {this.edges[edge.label] = edge}
+};
 
 function Vertex(id, properties) {
     
-    return {
-        id: id,
-        properties: properties,
-        edges: []
-    };
+        this.id = id;
+        this.properties = properties;
+        this.edges = [];
 }
 Vertex.prototype = {
     addEdge: function(edge) {
+        // TODO?: check if this edge
         this.edges.push(edge);
     }
 };
@@ -46,3 +47,10 @@ function Edge(label, startId, endId, properties) {
     };
 }
 Edge.prototype = {};
+
+
+module.exports = {
+    Graph: Graph,
+    Vertex: Vertex,
+    Edge: Edge
+}

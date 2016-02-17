@@ -7,7 +7,7 @@ module.exports = {
 
 	getIndexBy: function(_) {
 		return function(arr, key) {
-			_.mapValues(
+			return _.mapValues(
 				_.groupBy(arr, key),
 				function(a) {
 					return a[0];
