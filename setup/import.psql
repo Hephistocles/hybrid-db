@@ -1,0 +1,184 @@
+-- DROP TABLE IF EXISTS edges;
+-- DROP TABLE IF EXISTS points;
+
+-- CREATE TABLE points(
+-- 	id bigint NOT NULL,
+-- 	lat bigint NOT NULL,
+-- 	lng bigint NOT NULL,
+-- 	PRIMARY KEY (id)
+-- );
+
+-- CREATE TABLE edges(
+-- 	id SERIAL NOT NULL,
+-- 	id1 bigint NOT NULL,
+-- 	id2 bigint NOT NULL,
+-- 	dist bigint NOT NULL,
+-- 	PRIMARY KEY (id),
+-- 	FOREIGN KEY (id1) REFERENCES points(id),
+-- 	FOREIGN KEY (id2) REFERENCES points(id)
+-- );
+
+-- \copy points(id, lat, lng) FROM 'data/raw/points.dat' DELIMITER ',' HEADER CSV
+-- \copy edges(id1, id2, dist) FROM 'data/raw/edges.dat' DELIMITER ',' HEADER CSV
+
+CREATE OR REPLACE FUNCTION latlongdist(lata numeric, longa numeric, latb numeric, longb numeric) RETURNS double precision AS $$
+DECLARE
+  flata real;
+  flatb real;
+  flongd real;
+BEGIN
+  flata = radians(lata::double precision);
+  flatb = radians(latb::double precision);
+  flongd = radians((longa - longb)::double precision);
+  RETURN 6371 * acos((sin(flata) * sin(flatb)) + (cos(flata) * cos(flatb) * cos(flongd)));
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION astarroute(start bigint, target bigint) RETURNS record AS $$
+DECLARE
+  current_junction RECORD;
+  current_path RECORD;
+  secrow RECORD;
+  targetrec RECORD;
+  newdistance double precision;
+  i integer;
+BEGIN
+  i = 0;
+  select * into current_junction from points where id = start;
+  select * into targetrec from points where id = target;
+  
+  -- Create temporary table to use as priority queue.
+  create temp table priqueue (
+    id SERIAL, 
+    distance real,
+    hval real,
+    path bigint[],
+    head bigint
+  );
+  create index hval_sort on priqueue (hval desc);
+  create unique index pri_id on priqueue (id);
+  analyze priqueue;
+    
+  -- Create temporary table to track the closed set.
+  create temp table closed_set (
+    id bigint
+  );
+  create unique index closed_set_id on closed_set (id);
+  analyze closed_set;
+  
+  -- Initialise starting point
+  insert into priqueue (distance, hval, path, head)
+    VALUES (0, latlongdist(current_junction.lat, current_junction.lng, targetrec.lat, targetrec.lng), ARRAY[start]::bigint[], start);
+  
+  -- Main loop.
+  LOOP
+    -- Pop
+    i = i + 1;
+    select * into current_path from priqueue order by hval asc LIMIT 1;
+    delete from priqueue where id = current_path.id;
+    
+    -- Ignore if already explored
+    CONTINUE WHEN EXISTS (select id from closed_set where id = current_path.head);
+    -- Break out when we reach target
+    EXIT WHEN current_path.head = target;
+    
+    -- Add to closed set
+    insert into closed_set (id) VALUES (current_path.head);
+    
+    select * into current_junction from points where id = current_path.head;
+    
+    FOR secrow IN select j.*, r.dist from points as j join edges as r on r.id2 = j.id and r.id1 = current_path.head LOOP
+      CONTINUE WHEN EXISTS (select id from closed_set where id = secrow.id);
+      -- NB we're calculating the distance by latlng rather than using "dist"
+      -- newdistance = current_path.distance + latlongdist(current_junction.lat, current_junction.lng, secrow.lat, secrow.lng);
+      newdistance = current_path.distance + secrow.dist;
+      insert into priqueue (distance, hval, path, head)
+      	-- Estimate remaining distance by latlng distance
+        VALUES (newdistance, newdistance + latlongdist(secrow.lat, secrow.lng, targetrec.lat, targetrec.lng), current_path.path || secrow.id, secrow.id);
+    END LOOP;
+    
+  END LOOP;
+  
+  -- Clean up
+  DROP table priqueue;
+  DROP table closed_set;
+  
+  -- Debug return
+  RETURN current_path;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION astarroute2(start bigint, target bigint) RETURNS record AS $$
+DECLARE
+  current_junction RECORD;
+  current_path RECORD;
+  secrow RECORD;
+  targetrec RECORD;
+  newdistance double precision;
+  i integer;
+BEGIN
+  i = 0;
+  select * into current_junction from points where id = start;
+  select * into targetrec from points where id = target;
+  
+  -- Create temporary table to use as priority queue.
+  create temp table priqueue (
+    id SERIAL, 
+    distance real,
+    hval real,
+    path bigint[],
+    head bigint
+  );
+  create index hval_sort on priqueue (hval desc);
+  create unique index pri_id on priqueue (id);
+  analyze priqueue;
+    
+  -- Create temporary table to track the closed set.
+  create temp table closed_set (
+    id bigint
+  );
+  create unique index closed_set_id on closed_set (id);
+  analyze closed_set;
+  
+  -- Initialise starting point
+  insert into priqueue (distance, hval, path, head)
+    VALUES (0, latlongdist(current_junction.lat, current_junction.lng, targetrec.lat, targetrec.lng), ARRAY[start]::bigint[], start);
+  
+  -- Main loop.
+  LOOP
+    -- Pop
+    i = i + 1;
+    select * into current_path from priqueue order by hval asc LIMIT 1;
+    delete from priqueue where id = current_path.id;
+    
+    -- Ignore if already explored
+    CONTINUE WHEN EXISTS (select id from closed_set where id = current_path.head);
+    -- Break out when we reach target
+    EXIT WHEN current_path.head = target;
+    
+    -- Add to closed set
+    insert into closed_set (id) VALUES (current_path.head);
+    
+    select * into current_junction from points where id = current_path.head;
+    
+    FOR secrow IN select j.*, r.dist from points as j join edges as r on r.id2 = j.id and r.id1 = current_path.head LOOP
+      CONTINUE WHEN EXISTS (select id from closed_set where id = secrow.id);
+      -- NB we're calculating the distance by latlng rather than using "dist"
+      newdistance = current_path.distance + latlongdist(current_junction.lat, current_junction.lng, secrow.lat, secrow.lng);
+      -- newdistance = current_path.distance + secrow.dist;
+      insert into priqueue (distance, hval, path, head)
+      	-- Estimate remaining distance by latlng distance
+        VALUES (newdistance, newdistance + latlongdist(secrow.lat, secrow.lng, targetrec.lat, targetrec.lng), current_path.path || secrow.id, secrow.id);
+    END LOOP;
+    
+  END LOOP;
+  
+  -- Clean up
+  DROP table priqueue;
+  DROP table closed_set;
+  
+  -- Debug return
+  RETURN current_path;
+END;
+$$ LANGUAGE plpgsql;
