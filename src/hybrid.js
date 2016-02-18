@@ -106,9 +106,6 @@ function getVertex(id) {
 	return p;
 }
 
-function heuristic_cost_estimate(start, goal) {
-
-}
 
 function aStar(v_start, v_goal) {
     var ClosedSet = {},    	  // The set of nodes already evaluated.
@@ -117,15 +114,16 @@ function aStar(v_start, v_goal) {
     g_score = {};
 
     g_score[v_start.id] = 0;    // Cost from start along best known path.
+    var p = Q(true);
 
-
-    while (queue.length > 0) {
+    return p.then(function body() {
+	    if (queue.length < 1) return Q.reject("No path found or something wrong.");
         var current = queue.shift().vertex;
         if (current === v_goal) {
-            return reconstruct_path(Came_From, current)
+            return Q(reconstruct_path(Came_From, current));
         }
-
         ClosedSet[current.id] = true;
+        var newNeighbours = [];
         for (var i in current.edges) {
         	var edge = current.edges[i];
         	if (edge.endId in ClosedSet) continue; // ignore neighbours which are already evaluated
@@ -134,15 +132,34 @@ function aStar(v_start, v_goal) {
 
         	if (current.id in g_score && tentative_score >= g_score[edge.endId]) continue; // This is not a better path
         	
-        	addToPQ(OpenSet, graph.getVertex(edge.endId));
-        	
-        	Came_From[edge.endId] = current;
-        	g_score[edge.endId] = tentative_score;
-        	f_score[edge.endId] = g_score[edge.endId] + heuristic_cost_estimate(graph.getVertex(edge.endId), v_goal)
+        	newNeighbours.push(graph.getVertex(edge.endId));
         }
-    }
 
-    return [];
+        return Q.all(newNeighbours)
+	        .then(function(neighbours) {
+	        	for (var i in neighbours) {
+	        		var neighbour = neighbours[i];
+	        		var my_f = g_score[edge.endId] + heuristic_cost_estimate(neighbour, v_goal);
+
+		        	for (var j=0; j<queue.length; j++) {
+		        		// if this vertex is already in the priority queue, we should remove it
+		        		if (queue[j].vertex.id === neighbour.id) queue.splice(j,1);
+		        		if (queue[j].priority >= my_f) break;
+		        	}
+		        	// insert the new vertex at position `j`
+		        	queue.splice(j, 0, {priority: my_f, vertex:neighbour});
+		        	// check the rest of the queue for dupes
+		        	for (j; j<queue.length; j++) {
+		        		if (queue[j].vertex.id === neighbour.id) queue.splice(j,1);
+		        	}
+		        	
+		        	Came_From[edge.endId] = current;
+		        	g_score[edge.endId] = tentative_score;	
+	        	}
+	        })
+	        .then(body);
+	    }
+    })
 }
 
 function reconstruct_path(Came_From, current) {
