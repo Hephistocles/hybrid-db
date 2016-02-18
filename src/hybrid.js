@@ -105,3 +105,62 @@ function getVertex(id) {
 
 	return p;
 }
+
+function heuristic_cost_estimate(start, goal) {
+
+}
+
+function aStar(v_start, v_goal) {
+    var ClosedSet = {},    	  // The set of nodes already evaluated.
+    queue = [{priority: heuristic_cost_estimate(v_start, v_goal), vertex:v_start}],
+    Came_From = {},    // The map of navigated nodes.
+    g_score = {};
+
+    g_score[v_start.id] = 0;    // Cost from start along best known path.
+
+
+    while (queue.length > 0) {
+        var current = queue.shift().vertex;
+        if (current === v_goal) {
+            return reconstruct_path(Came_From, current)
+        }
+
+        ClosedSet[current.id] = true;
+        for (var i in current.edges) {
+        	var edge = current.edges[i];
+        	if (edge.endId in ClosedSet) continue; // ignore neighbours which are already evaluated
+
+        	var tentative_score = g_score[current.id] + edge.properties.dist;
+
+        	if (current.id in g_score && tentative_score >= g_score[edge.endId]) continue; // This is not a better path
+        	
+        	addToPQ(OpenSet, graph.getVertex(edge.endId));
+        	
+        	Came_From[edge.endId] = current;
+        	g_score[edge.endId] = tentative_score;
+        	f_score[edge.endId] = g_score[edge.endId] + heuristic_cost_estimate(graph.getVertex(edge.endId), v_goal)
+        }
+    }
+
+    return [];
+}
+
+function reconstruct_path(Came_From, current) {
+	console.log(arguments);
+}
+
+function heuristic_cost_estimate(v1, v2) {
+	// from http://www.movable-type.co.uk/scripts/latlong.html
+	var R = 6371000; // metres
+	var φ1 = v1.lat.toRadians();
+	var φ2 = v2.lat.toRadians();
+	var Δφ = (v2.lat-v1.lat).toRadians();
+	var Δλ = (v2.lng-v1.lng).toRadians();
+
+	var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+	        Math.cos(φ1) * Math.cos(φ2) *
+	        Math.sin(Δλ/2) * Math.sin(Δλ/2);
+	var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+	return R * c;
+}
