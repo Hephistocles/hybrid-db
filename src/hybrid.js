@@ -29,7 +29,6 @@ module.exports =
 		},
 		query: function(query, params){
 			// I don't have a query language yet, so just perform a single query
-			// assume we want to fetch the vertex with ID 1
 			return getVertex(params.id);
 
 		},
