@@ -5,7 +5,7 @@ var psql = require("./src/psql.js");
 var cypher = require("./src/cypher.js");
 var hybrid = require("./src/hybrid.js");
 
-var testBlocks = require("./src/tests.js");
+var testBlocks = require("./src/tests.json");
 
 main();
 
@@ -22,27 +22,14 @@ function main() {
 	// run all test blocks sequentially 
 	testBlocks.forEach(function(t) {
 		p = p.then(function() {
-			var iterations = 3;
-			var context = {
-				sql: sql,	
-				cypher: cypher,
-				hybrid: hybrid,
-				psql: psql
-			};
-			return block(t.name, t.tests, iterations, context);
+			var iterations = 1;
+			return block(t.name, t.tests, iterations);
 		})
-		.spread(function(sqlRes, neoRes, hybridRes, psqlRes) {
-			console.log("\n\n+-----------+");
-			console.log("| ALL DONE  |");
-			console.log("+-----------+\n");
-			report("sql", sqlRes);
-			report("neo", neoRes);
-			report("hybrid", hybridRes);
-			report("psql", psqlRes);
-
-		});
+		// output the results for each block as we go
+		.spread(report);
 	});
 
+	// finally close up the engine connections
 	p.then(function() {
 		return [
 			sql.end(),
@@ -57,43 +44,58 @@ function main() {
 	})
 }
 
-function test(fun, iter, ctx) {
-	var p = Q(true);
-	var start = process.hrtime();
-	
-	for (var i=0; i<iter; i++) {
-		// discard the previous result of running the function, and re-pass the context instead
-		p = p.then(function() {return ctx;});
-		p = p.then(fun)
-	}
-
-	return p.then(function(result) {
-		// called after the last iteration
-		return [process.hrtime(start), iter, result];
-	});
-}
-
-function block(name, funcs, iter, ctx) {
+function block(name, tests, iter) {
 
 	var results = [];
 	var promise = Q(true);
-	funcs.forEach(function (f) {
-	    promise = promise.then(function() {
-	    	var r = test(f, iter, ctx);
-	    	results.push(r);
-	    	return r;
-	    });
+	tests.forEach(function (t) {
+		
+		// select the appropriate engine for this test
+		var engine;
+		switch(t.engine) {
+			case 'sql':engine=sql; break;
+			case 'hybrid':engine=hybrid; break;
+			case 'psql':engine=psql; break;
+			case 'cypher':engine=cypher; break;
+		}
+
+		// chain promises for each test sequentially
+		// NB we're not expecting anything to be passed from the previous promise (from the previous test)
+		promise = promise.then(function() {
+			// log the start time
+			return [process.hrtime(), null];
+		});
+
+		// after we've logged the start time, run the tests the desired number of times
+		// make sure to pass along the start time
+		for (var i=0; i<iter; i++) {
+			promise = promise.spread(function(startTime, prevResult) {
+	    		return [startTime, engine.query(t.query, t.params)];
+	    	});
+		}
+
+		// after we've run all iterations, this will be called after the last one
+		promise = promise.spread(function(startTime, finalResult) {
+			results.push([t.engine, process.hrtime(startTime), iter, finalResult]);
+			// NB We're not returning anything to pass on to the next promise (for the next test)
+		});
 	});
 
+	// after running all the tests a number of times, return the aggregated results
 	return promise.then(function() {
-		return results;
+		return [name, results];
 	});
 }
 
-function report(name, result) {
-	console.log(name + ": " + result[0][0] + "." + pad(result[0][1],9) + "s for " + result[1] + " rounds. Last result looked like: ");
-	console.log(result[2]);
-	console.log(" ");
+function report(name, results) {
+	console.log("+" + "-".repeat(12 + name.length) + "+");
+	console.log("| " + name.toUpperCase() +   " ALL DONE  |");
+	console.log("+" + "-".repeat(12 + name.length) + "+\n");
+	for (var i in results) {
+		var result = results[i];
+		console.log(result[0] + ": " + result[1][0] + "." + pad(result[1][1],9) + "s for " + result[2] + " rounds. Last result looked like: ");
+		console.log("	", result[3]);
+	}
 }
 
 function pad(num, size){ 

@@ -1,0 +1,29 @@
+[
+    {
+        "name": "Samples",
+        "tests": [
+            {
+                "engine": "sql",
+                "query": "select * from points limit 1",
+                "params": {}
+            },
+            {
+                "engine": "cypher",
+                "query": "MATCH (n1 {id:1})-[r]->(n2) RETURN n2 LIMIT 2",
+                "params": {}
+            },
+            {
+                "engine": "hybrid",
+                "query": "",
+                "params": {
+                    "id": 1
+                }
+            },
+            {
+                "engine": "psql",
+                "query": "select astarroute(1, 1355)",
+                "params": {}
+            }
+        ]
+    }
+]
