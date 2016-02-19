@@ -5,6 +5,7 @@ var psql = require("./src/psql.js");
 var cypher = require("./src/cypher.js");
 var hybrid = require("./src/hybrid.js");
 
+var testBlocks = require("./src/tests.js");
 
 main();
 
@@ -18,31 +19,17 @@ function main() {
 		psql.init()
 	]);
 
-	var testBlocks = [
-		{
-			name: "Samples",
-			tests: [
-				function() {
-					return sql.query('select * from points limit 1', {});
-				},
-				function() {
-					return cypher.query("MATCH (n1 {id:1})-[r]->(n2) RETURN n2 LIMIT 2", {});
-				},
-				function() {
-					return hybrid.query("", {id:1})
-				},
-				function() {
-					return psql.query('select astarroute(1, 1355)', {});
-				}
-			]
-		}
-	];
-
 	// run all test blocks sequentially 
 	testBlocks.forEach(function(t) {
 		p = p.then(function() {
 			var iterations = 3;
-			return block(t.name, t.tests, iterations);
+			var context = {
+				sql: sql,	
+				cypher: cypher,
+				hybrid: hybrid,
+				psql: psql
+			};
+			return block(t.name, t.tests, iterations, context);
 		})
 		.spread(function(sqlRes, neoRes, hybridRes, psqlRes) {
 			console.log("\n\n+-----------+");
@@ -70,12 +57,14 @@ function main() {
 	})
 }
 
-function test(fun, iter) {
+function test(fun, iter, ctx) {
 	var p = Q(true);
 	var start = process.hrtime();
 	
 	for (var i=0; i<iter; i++) {
-		p = p.then(fun);
+		// discard the previous result of running the function, and re-pass the context instead
+		p = p.then(function() {return ctx;});
+		p = p.then(fun)
 	}
 
 	return p.then(function(result) {
@@ -84,13 +73,13 @@ function test(fun, iter) {
 	});
 }
 
-function block(name, funcs, iter) {
+function block(name, funcs, iter, ctx) {
 
 	var results = [];
 	var promise = Q(true);
 	funcs.forEach(function (f) {
 	    promise = promise.then(function() {
-	    	var r = test(f, iter);
+	    	var r = test(f, iter, ctx);
 	    	results.push(r);
 	    	return r;
 	    });
