@@ -31,40 +31,50 @@ module.exports =
 	},
 	query: function(query, params){
 		// I don't have a query language yet, so just perform a single query
-		return Q.all([getVertex(1), getVertex(1355)])
-			.spread(function(v1, v2) {
-				return aStar2({
-				    start: v1,
-				    isEnd: function(n) { return n.id === v2.id; },
-				    neighbor: function(x) { 
-				    	var promises = _.map(x.edges, function(edge) {
-				    			// console.log("	getting vertex" + edge.endId);
-				    			var start = process.hrtime();
-					    		return getVertex(edge.endId, start, i++);
-					    	});
-				    	return Q.all(promises)
-					    	.then(function(args) {
-					    		// console.log("	found neighs");
-					    		// console.log(args);
-					    		return args;
-					    	});
-				    },
-				    distance: function(a, b) { 
-				    	for (var i in a.edges) {
-				    		if (b.id === a.edges[i].endId) {
-				    			var d = parseInt(a.edges[i].properties.dist);
-				    			return d;
-				    		}
-				    	}
-				    },
-				    heuristic: function(x) { 
-				    	return heuristic_cost_estimate(x, v2);
-				    },
-				    hash: function(x) {
-				    	return ""+ x.id;
-				    }
-				  });
-			});		  
+		if (query === "astar") {
+			return Q.all([getVertex(1), getVertex(1355)])
+				.spread(function(v1, v2) {
+					return aStar2({
+					    start: v1,
+					    isEnd: function(n) { return n.id === v2.id; },
+					    neighbor: function(x) { 
+					    	var promises = _.map(x.edges, function(edge) {
+					    			// console.log("	getting vertex" + edge.endId);
+					    			var start = process.hrtime();
+						    		return getVertex(edge.endId, start, i++);
+						    	});
+					    	return Q.all(promises)
+						    	.then(function(args) {
+						    		// console.log("	found neighs");
+						    		// console.log(args);
+						    		return args;
+						    	});
+					    },
+					    distance: function(a, b) { 
+					    	for (var i in a.edges) {
+					    		if (b.id === a.edges[i].endId) {
+					    			var d = parseInt(a.edges[i].properties.dist);
+					    			return d;
+					    		}
+					    	}
+					    },
+					    heuristic: function(x) { 
+					    	return heuristic_cost_estimate(x, v2);
+					    },
+					    hash: function(x) {
+					    	return ""+ x.id;
+					    }
+					  });
+				});		  
+		} else if (query === "average latitude of neighbours within 3 hops") {
+			return new Q.Promise(function(resolve, reject) {
+				resolve("Not implemented 1");
+			});
+		} else if (query === "average latitude") {
+			return new Q.Promise(function(resolve, reject) {
+				resolve("Not implemented 2");
+			});
+		}
 
 	},
 	end: function() {

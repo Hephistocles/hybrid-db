@@ -3,21 +3,9 @@
         "name": "Samples",
         "tests": [
             {
-                "engine": "sql",
-                "query": "select * from points limit 1",
-                "params": {}
-            },
-            {
-                "engine": "cypher",
-                "query": "MATCH (n1 {id:1})-[r]->(n2) RETURN n2 LIMIT 2",
-                "params": {}
-            },
-            {
                 "engine": "hybrid",
-                "query": "",
-                "params": {
-                    "id": 1
-                }
+                "query": "astar",
+                "params": {}
             },
             {
                 "engine": "psql",
@@ -25,5 +13,46 @@
                 "params": {}
             }
         ]
+    },
+    {
+        "name": "Mean Lat within 3 Hops",
+        "tests": [
+            {
+                "engine": "hybrid",
+                "query": "average latitude of neighbours within 3 hops",
+                "params": {}
+            },
+            {
+                "engine": "psql",
+                "query": "select AVG(lat) FROM points JOIN (select distinct id1 from edge_neighbourhood(1, 2)) A on id1=points.id;",
+                "params": {}
+            },
+            {
+                "engine": "cypher",
+                "query": "MATCH (n: Point {id:1})-[r: Road*..2]-(n2) RETURN avg(distinct(n2.lat));",
+                "params": {}
+            }
+        ]
+    },
+    {
+        "name": "Mean Lat",
+        "tests": [
+            {
+                "engine": "hybrid",
+                "query": "average latitude",
+                "params": {}
+            },
+            {
+                "engine": "psql",
+                "query": "select AVG(lat) FROM points;",
+                "params": {}
+            },
+            {
+                "engine": "cypher",
+                "query": "MATCH (n: Point) RETURN avg(n.lat);",
+                "params": {}
+            }
+        ]
     }
 ]
+
