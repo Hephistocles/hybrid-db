@@ -1,10 +1,11 @@
 var Q = require("q");
 
 var sql = require("./src/sql.js");
+var psql = require("./src/psql.js");
 var cypher = require("./src/cypher.js");
 var hybrid = require("./src/hybrid.js");
 
-var iter = 10;
+var iter = 1;
 
 main();
 
@@ -12,7 +13,8 @@ function main() {
 	Q.all([
 		sql.init(),
 		cypher.init(),
-		hybrid.init("block")
+		hybrid.init("block"),
+		psql.init()
 		])
 		.then(function() {
 			var p = Q(true);
@@ -55,17 +57,33 @@ function main() {
 			})
 			return [sqlRes, cypherRes, p];
 		})
-		.spread(function(sqlRes, neoRes, hybridRes) {
-			console.log(sqlRes);
-			console.log(neoRes);
-			console.log(hybridRes);
+		.spread(function(sqlRes, cypherRes, hybridRes) {
+
+			var p = Q(true);
+			for (var i=0; i<iter; i++) {
+				p = p.then(function() {
+					return psql.query('select astarroute2(1, 1355)', {});
+				});
+			}
+			var start = process.hrtime();
+			p = p.then(function(result) {
+				return [process.hrtime(start), result];
+			})
+			return [sqlRes, cypherRes, hybridRes, p];
+		})
+		.spread(function(sqlRes, neoRes, hybridRes, psqlRes) {
+			report("sql", sqlRes);
+			report("neo", neoRes);
+			report("hybrid", hybridRes);
+			report("psql", psqlRes);
 
 		})
 		.then(function() {
 			return [
 				sql.end(),
 				cypher.end(),
-				hybrid.end()
+				hybrid.end(),
+				psql.end()
 			];
 		})
 		.catch(function(err) {
@@ -80,4 +98,14 @@ function subtime(time1, time2) {
 		t[0]--;
 		t[1] = 1+t[0];
 	}
+}
+
+function report(name, result) {
+	console.log(name + ": " + result[0][0] + "." + pad(result[0][1],9) + "ns for " + iter + " rounds. Last result looked like: ");
+	console.log(result[1]);
+	console.log(" ");
+}
+
+function pad(num, size){ 
+	return ('000000000' + num).substr(-size);
 }
