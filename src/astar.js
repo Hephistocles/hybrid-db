@@ -2,7 +2,7 @@ var assert = require('assert')
 , StringSet = require('Set')
 , Heap = require('heap')
 , dict = require('dict')
-, Q    = require('q')
+, Q = require('bluebird')
 , async = require('async');
 
 module.exports = aStar;
@@ -113,9 +113,7 @@ function aStar(params) {
 			});
 		}
 	});
-
-	 return deferred.promise;
-
+	return deferred.promise;
 }
 
 function reconstructPath(node) {

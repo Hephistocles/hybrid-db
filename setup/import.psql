@@ -21,6 +21,23 @@
 -- \copy points(id, lat, lng) FROM 'data/raw/points.dat' DELIMITER ',' HEADER CSV
 -- \copy edges(id1, id2, dist) FROM 'data/raw/edges.dat' DELIMITER ',' HEADER CSV
 
+DROP FUNCTION edge_neighbourhood(start int, depth int);
+CREATE OR REPLACE FUNCTION edge_neighbourhood(start int, depth int) RETURNS table(id int, id1 bigint, id2 bigint, dist bigint) AS $$
+BEGIN
+ RETURN QUERY WITH RECURSIVE lookahead(id, id1, id2, dist, depth) AS (
+        SELECT g.id, g.id1, g.id2, g.dist, 1
+        FROM edges g WHERE g.id1=$1
+      UNION ALL
+        SELECT edges.id, edges.id1, edges.id2, edges.dist, prev.depth+1
+         FROM edges 
+          JOIN lookahead prev ON edges.id1=prev.id2 
+          WHERE prev.depth<$2
+        ) SELECT lookahead.id, lookahead.id1, lookahead.id2, lookahead.dist FROM lookahead;
+END;
+$$ LANGUAGE plpgsql;
+
+-- EVERYTHING BELOW (i.e. latlongdist and astar routes) is from the Crackle codebase, with small modifications (commented)
+
 CREATE OR REPLACE FUNCTION latlongdist(lata numeric, longa numeric, latb numeric, longb numeric) RETURNS double precision AS $$
 DECLARE
   flata real;

@@ -7,9 +7,7 @@ var hybrid = require("./src/hybrid.js");
 
 var testBlocks = require("./src/tests.json");
 
-main();
-
-function main() {
+(function main() {
 
 	// initialise all systems
 	var p = Q.all([
@@ -42,7 +40,7 @@ function main() {
 		console.error(err);
 		throw err;
 	})
-}
+})();
 
 function block(name, tests, iter) {
 
