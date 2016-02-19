@@ -9,6 +9,7 @@ module.exports =
 	{
 		init: function(){
 			connection = pgp(config.auth.psql);
+			return Q(connection);
 		},
 		query: function(query, params){
 			// console.log("Quering");

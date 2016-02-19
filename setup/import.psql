@@ -109,6 +109,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- NB Here we're calculating the straight distance between junctions by latlng rather than using "dist"
 CREATE OR REPLACE FUNCTION astarroute2(start bigint, target bigint) RETURNS record AS $$
 DECLARE
   current_junction RECORD;
